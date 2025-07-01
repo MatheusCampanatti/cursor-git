@@ -43,6 +43,19 @@ const CellEditor: React.FC<CellEditorProps> = ({
   const isTimestamp = columnType === 'timestamp';
   const isClickable = !isReadonly && !isTimestamp;
 
+  // Debug logging
+  if (isEditing) {
+    console.log('Cell in edit mode:', {
+      columnType,
+      isReadonly,
+      isTimestamp,
+      isClickable,
+      value,
+      hasOptions: !!column.options,
+      options: column.options
+    });
+  }
+
   const renderDisplayValue = () => {
     if ((columnType === 'status' || columnType === 'priority') && column.options) {
       const statusColors: { [key: string]: string } = {
@@ -86,6 +99,7 @@ const CellEditor: React.FC<CellEditorProps> = ({
     return value || 'Click to edit';
   };
 
+  // Read-only display for timestamp columns
   if (!isEditing || isReadonly || isTimestamp) {
     return (
       <div
@@ -99,101 +113,122 @@ const CellEditor: React.FC<CellEditorProps> = ({
     );
   }
 
+  // We're in edit mode - show appropriate editor
+  console.log('Rendering editor for column type:', columnType);
+
+  // Status and priority columns - select dropdown with options
   if ((columnType === 'status' || columnType === 'priority') && column.options) {
+    console.log('Rendering select dropdown');
     return (
-      <Select value={value || ''} onValueChange={onValueChange} onOpenChange={(open) => !open && onBlur()}>
-        <SelectTrigger className="border-blue-500">
-          <SelectValue placeholder={`Select ${columnType}`} />
-        </SelectTrigger>
-        <SelectContent>
-          {column.options.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="bg-yellow-100 border-2 border-yellow-400 rounded">
+        <Select value={String(value || '')} onValueChange={onValueChange} onOpenChange={(open) => !open && onBlur()}>
+          <SelectTrigger className="border-blue-500">
+            <SelectValue placeholder={`Select ${columnType}`} />
+          </SelectTrigger>
+          <SelectContent>
+            {column.options.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     );
   }
 
+  // Date column - date picker
   if (columnType === 'date') {
-    const dateValue = value ? new Date(value) : undefined;
+    console.log('Rendering date picker');
+    const dateValue = value ? new Date(String(value)) : undefined;
     
     return (
-      <Popover onOpenChange={(open) => !open && onBlur()}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              "w-full justify-start text-left font-normal border-blue-500",
-              !dateValue && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {dateValue ? format(dateValue, 'PPP') : <span>Pick a date</span>}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={dateValue}
-            onSelect={(date) => {
-              onValueChange(date ? date.toISOString().split('T')[0] : '');
-              onBlur();
-            }}
-            initialFocus
-            className="pointer-events-auto"
-          />
-        </PopoverContent>
-      </Popover>
+      <div className="bg-green-100 border-2 border-green-400 rounded">
+        <Popover onOpenChange={(open) => !open && onBlur()}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal border-blue-500",
+                !dateValue && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateValue ? format(dateValue, 'PPP') : <span>Pick a date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dateValue}
+              onSelect={(date) => {
+                onValueChange(date ? date.toISOString().split('T')[0] : '');
+                onBlur();
+              }}
+              initialFocus
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
     );
   }
 
-  if (columnType === 'notes') {
-    return (
-      <Textarea
-        value={String(value || '')}
-        onChange={(e) => onValueChange(e.target.value)}
-        onBlur={onBlur}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            onBlur();
-          }
-        }}
-        className="min-h-[2rem] border-blue-500 resize-none"
-        autoFocus
-        placeholder="Add notes..."
-      />
-    );
-  }
-
+  // Number and budget columns - number input
   if (columnType === 'number' || columnType === 'budget') {
+    console.log('Rendering number input');
     return (
-      <Input
-        type="number"
-        value={String(value || '')}
-        onChange={(e) => onValueChange(e.target.value)}
-        onBlur={onBlur}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            onBlur();
-          }
-        }}
-        className="border-blue-500"
-        autoFocus
-        placeholder="0"
-        step="any"
-      />
+      <div className="bg-blue-100 border-2 border-blue-400 rounded">
+        <Input
+          type="number"
+          value={String(value || '')}
+          onChange={(e) => onValueChange(e.target.value)}
+          onBlur={onBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onBlur();
+            }
+          }}
+          className="border-blue-500"
+          autoFocus
+          placeholder="0"
+          step="any"
+        />
+      </div>
     );
   }
 
-  if (columnType === 'file') {
+  // Notes column - textarea
+  if (columnType === 'notes') {
+    console.log('Rendering textarea');
     return (
+      <div className="bg-purple-100 border-2 border-purple-400 rounded">
+        <Textarea
+          value={String(value || '')}
+          onChange={(e) => onValueChange(e.target.value)}
+          onBlur={onBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              onBlur();
+            }
+          }}
+          className="min-h-[2rem] border-blue-500 resize-none"
+          autoFocus
+          placeholder="Add notes..."
+        />
+      </div>
+    );
+  }
+
+  // Text column (default) - text input
+  console.log('Rendering default text input');
+  return (
+    <div className="bg-red-100 border-2 border-red-400 rounded">
       <Input
         type="text"
-        value={value || ''}
+        value={String(value || '')}
         onChange={(e) => onValueChange(e.target.value)}
         onBlur={onBlur}
         onKeyDown={(e) => {
@@ -204,27 +239,9 @@ const CellEditor: React.FC<CellEditorProps> = ({
         }}
         className="border-blue-500"
         autoFocus
-        placeholder="File URL or name"
+        placeholder="Enter text..."
       />
-    );
-  }
-
-  return (
-    <Input
-      type="text"
-      value={String(value || '')}
-      onChange={(e) => onValueChange(e.target.value)}
-      onBlur={onBlur}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          onBlur();
-        }
-      }}
-      className="border-blue-500"
-      autoFocus
-      placeholder="Enter text..."
-    />
+    </div>
   );
 };
 
