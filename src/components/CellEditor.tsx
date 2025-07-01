@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,8 +22,8 @@ interface Column {
 
 interface CellEditorProps {
   column: Column;
-  value: any;
-  onValueChange: (value: any) => void;
+  value: string | number | null;
+  onValueChange: (value: string | number | null) => void;
   onBlur: () => void;
   isEditing: boolean;
   onClick: () => void;
@@ -39,7 +38,7 @@ const CellEditor: React.FC<CellEditorProps> = ({
   onClick,
 }) => {
   const renderDisplayValue = () => {
-    if (column.type === 'status' && column.options) {
+    if ((column.type === 'status' || column.type === 'priority') && column.options) {
       const statusColors: { [key: string]: string } = {
         'Not started': 'bg-gray-100 text-gray-800',
         'Working on it': 'bg-yellow-100 text-yellow-800',
@@ -51,33 +50,31 @@ const CellEditor: React.FC<CellEditorProps> = ({
       };
       
       return (
-        <span className={cn('px-2 py-1 rounded-full text-xs font-medium', statusColors[value] || 'bg-gray-100 text-gray-800')}>
-          {value || 'Select status'}
+        <span className={cn('px-2 py-1 rounded-full text-xs font-medium', statusColors[String(value)] || 'bg-gray-100 text-gray-800')}>
+          {value || `Select ${column.type}`}
         </span>
       );
     }
     
     if (column.type === 'date') {
-      return value ? format(new Date(value), 'MMM dd, yyyy') : 'Select date';
+      return value ? format(new Date(String(value)), 'MMM dd, yyyy') : 'Select date';
     }
     
-    if (column.type === 'date-range') {
-      if (value && value.start && value.end) {
-        return `${format(new Date(value.start), 'MMM dd')} - ${format(new Date(value.end), 'MMM dd, yyyy')}`;
-      }
-      return 'Select date range';
-    }
-    
-    if (column.type === 'number') {
-      return value ? `$${parseFloat(value).toLocaleString()}` : 'Enter amount';
+    if (column.type === 'number' || column.type === 'budget') {
+      return value ? `${parseFloat(String(value)).toLocaleString()}` : 'Enter number';
     }
     
     if (column.type === 'timestamp') {
-      return value ? format(new Date(value), 'MMM dd, yyyy HH:mm') : format(new Date(), 'MMM dd, yyyy HH:mm');
+      return value ? format(new Date(String(value)), 'MMM dd, yyyy HH:mm') : format(new Date(), 'MMM dd, yyyy HH:mm');
     }
     
-    if (column.type === 'file') {
-      return value ? value : 'Upload file';
+    if (column.type === 'notes') {
+      const displayText = String(value || 'Click to add notes');
+      return (
+        <div className="whitespace-pre-wrap max-h-20 overflow-hidden">
+          {displayText.length > 50 ? `${displayText.substring(0, 50)}...` : displayText}
+        </div>
+      );
     }
     
     return value || 'Click to edit';
@@ -94,11 +91,11 @@ const CellEditor: React.FC<CellEditorProps> = ({
     );
   }
 
-  if (column.type === 'status' && column.options) {
+  if ((column.type === 'status' || column.type === 'priority') && column.options) {
     return (
       <Select value={value || ''} onValueChange={onValueChange} onOpenChange={(open) => !open && onBlur()}>
         <SelectTrigger className="border-blue-500">
-          <SelectValue placeholder="Select status" />
+          <SelectValue placeholder={`Select ${column.type}`} />
         </SelectTrigger>
         <SelectContent>
           {column.options.map((option) => (
@@ -144,36 +141,10 @@ const CellEditor: React.FC<CellEditorProps> = ({
     );
   }
 
-  if (column.type === 'date-range') {
-    const dateRange = value || { start: '', end: '' };
-    
-    return (
-      <div className="flex gap-2 items-center">
-        <Input
-          type="date"
-          value={dateRange.start}
-          onChange={(e) => onValueChange({ ...dateRange, start: e.target.value })}
-          onBlur={onBlur}
-          className="border-blue-500 text-xs"
-          placeholder="Start"
-        />
-        <span className="text-gray-400">to</span>
-        <Input
-          type="date"
-          value={dateRange.end}
-          onChange={(e) => onValueChange({ ...dateRange, end: e.target.value })}
-          onBlur={onBlur}
-          className="border-blue-500 text-xs"
-          placeholder="End"
-        />
-      </div>
-    );
-  }
-
-  if (column.type === 'textarea') {
+  if (column.type === 'notes') {
     return (
       <Textarea
-        value={value || ''}
+        value={String(value || '')}
         onChange={(e) => onValueChange(e.target.value)}
         onBlur={onBlur}
         onKeyDown={(e) => {
@@ -182,13 +153,14 @@ const CellEditor: React.FC<CellEditorProps> = ({
             onBlur();
           }
         }}
-        className="min-h-[2rem] border-blue-500"
+        className="min-h-[2rem] border-blue-500 resize-none"
         autoFocus
+        placeholder="Add notes..."
       />
     );
   }
 
-  if (column.type === 'number') {
+  if (column.type === 'number' || column.type === 'budget') {
     return (
       <Input
         type="number"
@@ -203,7 +175,8 @@ const CellEditor: React.FC<CellEditorProps> = ({
         }}
         className="border-blue-500"
         autoFocus
-        placeholder="0.00"
+        placeholder="0"
+        step="any"
       />
     );
   }
@@ -231,7 +204,7 @@ const CellEditor: React.FC<CellEditorProps> = ({
   return (
     <Input
       type="text"
-      value={value || ''}
+      value={String(value || '')}
       onChange={(e) => onValueChange(e.target.value)}
       onBlur={onBlur}
       onKeyDown={(e) => {
@@ -242,6 +215,7 @@ const CellEditor: React.FC<CellEditorProps> = ({
       }}
       className="border-blue-500"
       autoFocus
+      placeholder="Enter text..."
     />
   );
 };

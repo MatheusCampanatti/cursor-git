@@ -111,31 +111,31 @@ const BoardTableView: React.FC<BoardTableViewProps> = ({ boardId }) => {
     }
   };
 
-  const getItemValue = (itemId: string, columnId: string, column: Column): any => {
+  const getItemValue = (itemId: string, columnId: string, column: Column): string | number | null => {
     const itemValue = itemValues.find(
       (value) => value.item_id === itemId && value.column_id === columnId
     );
     
     if (!itemValue) return '';
     
-    // Return appropriate value based on column type
+    // Return appropriate value based on column type according to requirements
     switch (column.type) {
       case 'date':
+      case 'timestamp':
         return itemValue.date_value || '';
       case 'number':
+      case 'budget':
         return itemValue.number_value || '';
-      case 'date-range':
-        try {
-          return itemValue.value ? JSON.parse(itemValue.value) : { start: '', end: '' };
-        } catch {
-          return { start: '', end: '' };
-        }
+      case 'text':
+      case 'status':
+      case 'priority':
+      case 'notes':
       default:
         return itemValue.value || '';
     }
   };
 
-  const updateItemValue = async (itemId: string, columnId: string, value: any, column: Column) => {
+  const updateItemValue = async (itemId: string, columnId: string, value: string | number | null, column: Column) => {
     console.log('Updating item value:', { itemId, columnId, value, columnType: column.type });
 
     try {
@@ -143,33 +143,40 @@ const BoardTableView: React.FC<BoardTableViewProps> = ({ boardId }) => {
         (val) => val.item_id === itemId && val.column_id === columnId
       );
 
-      // Prepare update data based on column type
-      let updateData: any = { updated_at: new Date().toISOString() };
+      // Prepare update data based on column type according to requirements
+      const updateData: {
+        updated_at: string;
+        value?: string | null;
+        date_value?: string | null;
+        number_value?: number | null;
+      } = { updated_at: new Date().toISOString() };
       
       switch (column.type) {
         case 'date':
-          updateData.date_value = value || null;
+        case 'timestamp':
+          updateData.date_value = value ? String(value) : null;
           updateData.value = null;
           updateData.number_value = null;
           break;
         case 'number':
-          updateData.number_value = value ? parseFloat(value) : null;
+        case 'budget':
+          updateData.number_value = value ? parseFloat(String(value)) : null;
           updateData.value = null;
           updateData.date_value = null;
           break;
-        case 'date-range':
-          updateData.value = JSON.stringify(value);
-          updateData.date_value = null;
-          updateData.number_value = null;
-          break;
+        case 'text':
+        case 'status':
+        case 'priority':
+        case 'notes':
         default:
-          updateData.value = value;
+          updateData.value = value ? String(value) : null;
           updateData.date_value = null;
           updateData.number_value = null;
           break;
       }
 
       if (existingValue) {
+        // Update existing item value
         const { error } = await supabase
           .from('item_values')
           .update(updateData)
@@ -188,6 +195,7 @@ const BoardTableView: React.FC<BoardTableViewProps> = ({ boardId }) => {
           )
         );
       } else {
+        // Create new item value (upsert logic)
         const insertData = {
           item_id: itemId,
           column_id: columnId,
@@ -215,27 +223,43 @@ const BoardTableView: React.FC<BoardTableViewProps> = ({ boardId }) => {
 
   const createDefaultItemValues = async (itemId: string) => {
     const valuesToCreate = columns.map(column => {
-      let insertData: any = {
+      const insertData: {
+        item_id: string;
+        column_id: string;
+        value?: string | null;
+        date_value?: string | null;
+        number_value?: number | null;
+      } = {
         item_id: itemId,
         column_id: column.id,
       };
 
-      // Set appropriate default values based on column type
+      // Set appropriate default values based on column type according to requirements
       switch (column.type) {
         case 'timestamp':
-          insertData.value = new Date().toISOString();
+          insertData.date_value = new Date().toISOString().split('T')[0];
+          insertData.value = null;
+          insertData.number_value = null;
           break;
         case 'date':
           insertData.date_value = null;
-          break;
-        case 'number':
+          insertData.value = null;
           insertData.number_value = null;
           break;
-        case 'date-range':
-          insertData.value = JSON.stringify({ start: '', end: '' });
+        case 'number':
+        case 'budget':
+          insertData.number_value = null;
+          insertData.value = null;
+          insertData.date_value = null;
           break;
+        case 'text':
+        case 'status':
+        case 'priority':
+        case 'notes':
         default:
           insertData.value = '';
+          insertData.date_value = null;
+          insertData.number_value = null;
           break;
       }
 
@@ -368,12 +392,12 @@ const BoardTableView: React.FC<BoardTableViewProps> = ({ boardId }) => {
                 className="px-3 py-2 border rounded-md text-sm"
               >
                 <option value="text">Text</option>
+                <option value="status">Status</option>
+                <option value="priority">Priority</option>
                 <option value="number">Number</option>
                 <option value="date">Date</option>
-                <option value="status">Status</option>
-                <option value="textarea">Textarea</option>
-                <option value="file">File</option>
                 <option value="timestamp">Timestamp</option>
+                <option value="notes">Notes</option>
               </select>
               <Button onClick={addNewColumn} size="sm">
                 <Plus className="w-4 h-4" />
