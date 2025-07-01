@@ -420,6 +420,14 @@ const BoardTableView: React.FC<BoardTableViewProps> = ({ boardId }) => {
           <p className="text-sm text-blue-700">
             Click any cell below to start editing (except timestamp columns which are read-only)
           </p>
+          <div className="mt-2 text-xs text-blue-600">
+            <strong>Column Details:</strong>
+            {columns.map(col => (
+              <div key={col.id} className="ml-2">
+                {col.name} ({col.type}) - ReadOnly: {String(col.is_readonly)}
+              </div>
+            ))}
+          </div>
         </div>
         
         <div className="overflow-x-auto">

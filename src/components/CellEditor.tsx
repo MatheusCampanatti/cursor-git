@@ -57,50 +57,62 @@ const CellEditor: React.FC<CellEditorProps> = ({
   }
 
   const renderDisplayValue = () => {
-    if ((columnType === 'status' || columnType === 'priority') && column.options) {
-      const statusColors: { [key: string]: string } = {
-        'Not started': 'bg-gray-100 text-gray-800',
-        'Working on it': 'bg-yellow-100 text-yellow-800',
-        'Stuck': 'bg-red-100 text-red-800',
-        'Done': 'bg-green-100 text-green-800',
-        'Low': 'bg-blue-100 text-blue-800',
-        'Medium': 'bg-orange-100 text-orange-800',
-        'High': 'bg-red-100 text-red-800',
-      };
+    // Add visual indicator if we're in display mode
+    const displayContent = (() => {
+      if ((columnType === 'status' || columnType === 'priority') && column.options) {
+        const statusColors: { [key: string]: string } = {
+          'Not started': 'bg-gray-100 text-gray-800',
+          'Working on it': 'bg-yellow-100 text-yellow-800',
+          'Stuck': 'bg-red-100 text-red-800',
+          'Done': 'bg-green-100 text-green-800',
+          'Low': 'bg-blue-100 text-blue-800',
+          'Medium': 'bg-orange-100 text-orange-800',
+          'High': 'bg-red-100 text-red-800',
+        };
+        
+        return (
+          <span className={cn('px-2 py-1 rounded-full text-xs font-medium', statusColors[String(value)] || 'bg-gray-100 text-gray-800')}>
+            {value || `Select ${columnType}`}
+          </span>
+        );
+      }
       
-      return (
-        <span className={cn('px-2 py-1 rounded-full text-xs font-medium', statusColors[String(value)] || 'bg-gray-100 text-gray-800')}>
-          {value || `Select ${columnType}`}
+      if (columnType === 'date') {
+        return value ? format(new Date(String(value)), 'MMM dd, yyyy') : 'Select date';
+      }
+      
+      if (columnType === 'number' || columnType === 'budget') {
+        return value ? `${parseFloat(String(value)).toLocaleString()}` : 'Enter number';
+      }
+      
+      if (columnType === 'timestamp') {
+        return value ? format(new Date(String(value)), 'MMM dd, yyyy HH:mm') : format(new Date(), 'MMM dd, yyyy HH:mm');
+      }
+      
+      if (columnType === 'notes') {
+        const displayText = String(value || 'Click to add notes');
+        return (
+          <div className="whitespace-pre-wrap max-h-20 overflow-hidden">
+            {displayText.length > 50 ? `${displayText.substring(0, 50)}...` : displayText}
+          </div>
+        );
+      }
+      
+      return value || 'Click to edit';
+    })();
+
+    return (
+      <div className="flex items-center justify-between">
+        {displayContent}
+        <span className="text-xs text-gray-400 ml-2">
+          {isEditing ? '(EDIT MODE)' : '(DISPLAY)'}
         </span>
-      );
-    }
-    
-    if (columnType === 'date') {
-      return value ? format(new Date(String(value)), 'MMM dd, yyyy') : 'Select date';
-    }
-    
-    if (columnType === 'number' || columnType === 'budget') {
-      return value ? `${parseFloat(String(value)).toLocaleString()}` : 'Enter number';
-    }
-    
-    if (columnType === 'timestamp') {
-      return value ? format(new Date(String(value)), 'MMM dd, yyyy HH:mm') : format(new Date(), 'MMM dd, yyyy HH:mm');
-    }
-    
-    if (columnType === 'notes') {
-      const displayText = String(value || 'Click to add notes');
-      return (
-        <div className="whitespace-pre-wrap max-h-20 overflow-hidden">
-          {displayText.length > 50 ? `${displayText.substring(0, 50)}...` : displayText}
-        </div>
-      );
-    }
-    
-    return value || 'Click to edit';
+      </div>
+    );
   };
 
-  // Read-only display for timestamp columns
-  if (!isEditing || isReadonly || isTimestamp) {
+  // TEMPORARILY FORCE EDIT MODE - Remove readonly check for testing
+  if (!isEditing) {
     return (
       <div
         className={`min-h-[2rem] p-2 rounded border-transparent border w-full ${
