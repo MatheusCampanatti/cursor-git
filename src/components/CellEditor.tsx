@@ -37,8 +37,14 @@ const CellEditor: React.FC<CellEditorProps> = ({
   isEditing,
   onClick,
 }) => {
+  // Safety checks for column properties
+  const columnType = column.type || 'text';
+  const isReadonly = column.is_readonly === true;
+  const isTimestamp = columnType === 'timestamp';
+  const isClickable = !isReadonly && !isTimestamp;
+
   const renderDisplayValue = () => {
-    if ((column.type === 'status' || column.type === 'priority') && column.options) {
+    if ((columnType === 'status' || columnType === 'priority') && column.options) {
       const statusColors: { [key: string]: string } = {
         'Not started': 'bg-gray-100 text-gray-800',
         'Working on it': 'bg-yellow-100 text-yellow-800',
@@ -51,24 +57,24 @@ const CellEditor: React.FC<CellEditorProps> = ({
       
       return (
         <span className={cn('px-2 py-1 rounded-full text-xs font-medium', statusColors[String(value)] || 'bg-gray-100 text-gray-800')}>
-          {value || `Select ${column.type}`}
+          {value || `Select ${columnType}`}
         </span>
       );
     }
     
-    if (column.type === 'date') {
+    if (columnType === 'date') {
       return value ? format(new Date(String(value)), 'MMM dd, yyyy') : 'Select date';
     }
     
-    if (column.type === 'number' || column.type === 'budget') {
+    if (columnType === 'number' || columnType === 'budget') {
       return value ? `${parseFloat(String(value)).toLocaleString()}` : 'Enter number';
     }
     
-    if (column.type === 'timestamp') {
+    if (columnType === 'timestamp') {
       return value ? format(new Date(String(value)), 'MMM dd, yyyy HH:mm') : format(new Date(), 'MMM dd, yyyy HH:mm');
     }
     
-    if (column.type === 'notes') {
+    if (columnType === 'notes') {
       const displayText = String(value || 'Click to add notes');
       return (
         <div className="whitespace-pre-wrap max-h-20 overflow-hidden">
@@ -80,22 +86,24 @@ const CellEditor: React.FC<CellEditorProps> = ({
     return value || 'Click to edit';
   };
 
-  if (!isEditing || column.is_readonly || column.type === 'timestamp') {
+  if (!isEditing || isReadonly || isTimestamp) {
     return (
       <div
-        className="min-h-[2rem] p-2 cursor-pointer hover:bg-gray-50 rounded border-transparent border w-full"
-        onClick={column.is_readonly || column.type === 'timestamp' ? undefined : onClick}
+        className={`min-h-[2rem] p-2 rounded border-transparent border w-full ${
+          isClickable ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'
+        }`}
+        onClick={isClickable ? onClick : undefined}
       >
         {renderDisplayValue()}
       </div>
     );
   }
 
-  if ((column.type === 'status' || column.type === 'priority') && column.options) {
+  if ((columnType === 'status' || columnType === 'priority') && column.options) {
     return (
       <Select value={value || ''} onValueChange={onValueChange} onOpenChange={(open) => !open && onBlur()}>
         <SelectTrigger className="border-blue-500">
-          <SelectValue placeholder={`Select ${column.type}`} />
+          <SelectValue placeholder={`Select ${columnType}`} />
         </SelectTrigger>
         <SelectContent>
           {column.options.map((option) => (
@@ -108,7 +116,7 @@ const CellEditor: React.FC<CellEditorProps> = ({
     );
   }
 
-  if (column.type === 'date') {
+  if (columnType === 'date') {
     const dateValue = value ? new Date(value) : undefined;
     
     return (
@@ -141,7 +149,7 @@ const CellEditor: React.FC<CellEditorProps> = ({
     );
   }
 
-  if (column.type === 'notes') {
+  if (columnType === 'notes') {
     return (
       <Textarea
         value={String(value || '')}
@@ -160,11 +168,11 @@ const CellEditor: React.FC<CellEditorProps> = ({
     );
   }
 
-  if (column.type === 'number' || column.type === 'budget') {
+  if (columnType === 'number' || columnType === 'budget') {
     return (
       <Input
         type="number"
-        value={value || ''}
+        value={String(value || '')}
         onChange={(e) => onValueChange(e.target.value)}
         onBlur={onBlur}
         onKeyDown={(e) => {
@@ -181,7 +189,7 @@ const CellEditor: React.FC<CellEditorProps> = ({
     );
   }
 
-  if (column.type === 'file') {
+  if (columnType === 'file') {
     return (
       <Input
         type="text"

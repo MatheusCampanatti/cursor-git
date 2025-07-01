@@ -1,4 +1,3 @@
-
 -- Add support for column options and enhance the board_columns table
 ALTER TABLE public.board_columns 
 ADD COLUMN IF NOT EXISTS options JSONB DEFAULT NULL,
@@ -16,18 +15,15 @@ COMMENT ON COLUMN public.board_columns.options IS 'JSON array of options for sta
 CREATE OR REPLACE FUNCTION create_default_board_columns(board_id_param UUID)
 RETURNS VOID AS $$
 BEGIN
-  -- Insert predefined columns for the new board
+  -- Insert predefined columns for the new board with only supported types
   INSERT INTO public.board_columns (name, type, board_id, "order", options, is_readonly) VALUES
     ('Item Name', 'text', board_id_param, 1, NULL, FALSE),
     ('Status', 'status', board_id_param, 2, '["Not started", "Working on it", "Stuck", "Done"]'::jsonb, FALSE),
     ('Due Date', 'date', board_id_param, 3, NULL, FALSE),
-    ('Priority', 'status', board_id_param, 4, '["Low", "Medium", "High"]'::jsonb, FALSE),
-    ('Notes', 'text', board_id_param, 5, NULL, FALSE),
+    ('Priority', 'priority', board_id_param, 4, '["Low", "Medium", "High"]'::jsonb, FALSE),
+    ('Notes', 'notes', board_id_param, 5, NULL, FALSE),
     ('Budget', 'number', board_id_param, 6, NULL, FALSE),
-    ('Files', 'file', board_id_param, 7, NULL, FALSE),
-    ('Timeline Start', 'date', board_id_param, 8, NULL, FALSE),
-    ('Timeline End', 'date', board_id_param, 9, NULL, FALSE),
-    ('Last Updated', 'timestamp', board_id_param, 10, NULL, TRUE);
+    ('Last Updated', 'timestamp', board_id_param, 7, NULL, TRUE);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

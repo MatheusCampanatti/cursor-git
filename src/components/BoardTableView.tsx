@@ -408,6 +408,20 @@ const BoardTableView: React.FC<BoardTableViewProps> = ({ boardId }) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Temporary Debug Panel */}
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <h4 className="font-semibold text-blue-800 mb-2">Debug Info:</h4>
+          <p className="text-sm text-blue-700">
+            Currently editing: <span className="font-mono bg-white px-1 rounded">{editingCell || 'None'}</span>
+          </p>
+          <p className="text-sm text-blue-700">
+            Total columns: {columns.length} | Total items: {items.length} | Total values: {itemValues.length}
+          </p>
+          <p className="text-sm text-blue-700">
+            Click any cell below to start editing (except timestamp columns which are read-only)
+          </p>
+        </div>
+        
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -428,7 +442,7 @@ const BoardTableView: React.FC<BoardTableViewProps> = ({ boardId }) => {
                     const currentValue = getItemValue(item.id, column.id, column);
                     
                     return (
-                      <TableCell key={cellKey} className="p-0">
+                      <TableCell key={cellKey} className="p-1 relative">
                         <CellEditor
                           column={column}
                           value={currentValue}
